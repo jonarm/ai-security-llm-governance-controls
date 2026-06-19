@@ -35,8 +35,6 @@ real company's data or systems.
 
 ## What's in this repo
 
-## What's in this repo
-
 | Folder | Contents |
 |---|---|
 | `docs/` | Architecture overview, STRIDE/LLM threat models, framework control mapping |
