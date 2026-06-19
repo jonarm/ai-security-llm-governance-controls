@@ -35,20 +35,17 @@ real company's data or systems.
 
 ## What's in this repo
 
-\`\`\`
-docs/           Architecture overview, STRIDE/LLM threat models, framework control mapping
-governance/     AI risk register, vendor review template, use-case risk tiering model
-guardrails/     Entra Conditional Access, Purview DLP, Azure OpenAI content filters,
-                RAG input/output validation design (+ Terraform for CA policies)
-sentinel/       KQL detection rules for shadow AI, prompt injection signals,
-                anomalous Copilot access, and excessive agent tool-call activity
-terraform/      IaC for the Sentinel workspace, analytics rule deployment, and
-                diagnostic settings feeding AI Plane logs into Sentinel
-powerbi/        Dashboard data model, DAX measures, and exported views for
-                governance posture and security operations reporting
-screenshots/    Evidence of deployed controls (Entra CA, Purview, Sentinel alerts,
-                Copilot admin center, Power BI dashboard)
-\`\`\`
+## What's in this repo
+
+| Folder | Contents |
+|---|---|
+| `docs/` | Architecture overview, STRIDE/LLM threat models, framework control mapping |
+| `governance/` | AI risk register, vendor review template, use-case risk tiering model |
+| `guardrails/` | Entra Conditional Access, Purview DLP, Azure OpenAI content filters, RAG input/output validation design (+ Terraform for CA policies) |
+| `sentinel/` | KQL detection rules for shadow AI, prompt injection signals, anomalous Copilot access, and excessive agent tool-call activity |
+| `terraform/` | IaC for the Sentinel workspace, analytics rule deployment, and diagnostic settings feeding AI Plane logs into Sentinel |
+| `powerbi/` | Dashboard data model, DAX measures, and exported views for governance posture and security operations reporting |
+| `screenshots/` | Evidence of deployed controls (Entra CA, Purview, Sentinel alerts, Copilot admin center, Power BI dashboard) |
 
 ## How to navigate this repo
 
