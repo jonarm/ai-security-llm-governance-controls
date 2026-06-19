@@ -17,65 +17,65 @@ models, governance controls, and detection rules in this repository are built ag
 
 ## Architecture diagram
 
-\`\`\`mermaid
+```mermaid
 flowchart TB
     subgraph Users["Users"]
         EMP["Employees (M365 identities)"]
         CUST["Retail Customers"]
     end
 
-    subgraph M365["Microsoft 365 Tenant — Trust Zone: Corporate Identity"]
+    subgraph M365["Microsoft 365 Tenant - Trust Zone: Corporate Identity"]
         COPILOT["M365 Copilot"]
         EXO["Exchange / Teams / SharePoint data"]
         ENTRA["Entra ID + Conditional Access"]
         PURVIEW["Purview DLP / Sensitivity Labels"]
     end
 
-    subgraph AppPlane["Customer-Facing App Plane — Trust Zone: Semi-Trusted"]
+    subgraph AppPlane["Customer-Facing App Plane - Trust Zone: Semi-Trusted"]
         WEBAPP["Customer Service Web/Chat Frontend"]
         ORDERAPP["Order Management Portal"]
     end
 
-    subgraph AIPlane["AI Plane — Trust Zone: AI Services (Azure)"]
-        AOAI["Azure OpenAI Service (GPT model + content filters)"]
-        RAG["RAG Orchestrator (retrieval + prompt construction)"]
-        SEARCH["Azure AI Search (vector index)"]
-        AGENT["Agentic Workflow Orchestrator (tool-calling layer)"]
-        PEP["Policy Enforcement Point (Azure Function — input/output validation)"]
+    subgraph AIPlane["AI Plane - Trust Zone: AI Services Azure"]
+        AOAI["Azure OpenAI Service - GPT model plus content filters"]
+        RAG["RAG Orchestrator - retrieval plus prompt construction"]
+        SEARCH["Azure AI Search - vector index"]
+        AGENT["Agentic Workflow Orchestrator - tool-calling layer"]
+        PEP["Policy Enforcement Point - Azure Function input/output validation"]
     end
 
-    subgraph DataPlane["Data Plane — Trust Zone: Sensitive Data"]
+    subgraph DataPlane["Data Plane - Trust Zone: Sensitive Data"]
         CRM["CRM / Loyalty DB"]
-        ORDERS["Order & Payment DB"]
-        DOCS["Product & Policy Docs (SharePoint/Blob)"]
+        ORDERS["Order and Payment DB"]
+        DOCS["Product and Policy Docs SharePoint/Blob"]
     end
 
-    subgraph SecOps["Security Operations — Trust Zone: Monitoring"]
+    subgraph SecOps["Security Operations - Trust Zone: Monitoring"]
         SENTINEL["Microsoft Sentinel"]
         DEFENDER["Defender for Cloud Apps"]
     end
 
-    EMP -->|Authenticated, CA-enforced| COPILOT
+    EMP -->|Authenticated CA-enforced| COPILOT
     COPILOT --> EXO
     COPILOT -.->|policy check| PURVIEW
     ENTRA -.->|enforces access| COPILOT
 
-    CUST -->|Public internet, unauthenticated/low-trust| WEBAPP
+    CUST -->|Public internet unauthenticated| WEBAPP
     WEBAPP --> RAG
     RAG --> PEP
     PEP --> AOAI
     RAG --> SEARCH
     SEARCH --> DOCS
 
-    EMP -->|Authenticated, scoped role| ORDERAPP
+    EMP -->|Authenticated scoped role| ORDERAPP
     ORDERAPP --> AGENT
     AGENT --> PEP
     PEP --> AOAI
-    AGENT -->|Scoped API calls, human approval above threshold| ORDERS
+    AGENT -->|Scoped API calls human approval above threshold| ORDERS
     AGENT -.->|read-only| CRM
 
     AOAI -.->|content filter logs| SENTINEL
-    PEP -.->|validation logs, blocked prompts| SENTINEL
+    PEP -.->|validation logs blocked prompts| SENTINEL
     COPILOT -.->|usage/audit logs| SENTINEL
     DEFENDER -.->|shadow AI detections| SENTINEL
 
@@ -85,7 +85,7 @@ flowchart TB
     class M365,SecOps trustHigh
     class AppPlane,AIPlane trustMed
     class DataPlane trustData
-\`\`\`
+```
 
 ## Trust boundaries
 
