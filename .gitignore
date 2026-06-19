@@ -42,3 +42,56 @@ terraform.rc
 # Optional: ignore plan files saved before destroying Terraform configuration
 # Uncomment the line below if you want to ignore planout files.
 # planout
+
+# ===== Terraform =====
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+
+# ===== Power BI =====
+# .pbix files are binary and can be large; track them via Git LFS if you want them in-repo,
+# otherwise keep dashboards as exported screenshots and exclude the working file.
+*.pbix.bak
+~$*.pbix
+.pbi-cache/
+
+# ===== Azure / secrets =====
+*.env
+.env.*
+*.pem
+*.key
+*.pfx
+azureauth.json
+**/secrets/
+**/*secret*
+**/*credential*
+
+# ===== Python (if PR-reviewer tool gets added later) =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# ===== OS / editor noise =====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ===== Logs / temp =====
+*.log
+*.tmp
