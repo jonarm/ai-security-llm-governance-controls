@@ -27,3 +27,10 @@ resource "azurerm_log_analytics_workspace" "ai_governance_sentinel" {
 resource "azurerm_sentinel_log_analytics_workspace_onboarding" "ai_governance_sentinel_onboarding" {
   workspace_id = azurerm_log_analytics_workspace.ai_governance_sentinel.id
 }
+
+module "sentinel_analytics_rules" {
+  source                = "./sentinel"
+  sentinel_workspace_id = azurerm_log_analytics_workspace.ai_governance_sentinel.id
+
+  depends_on = [azurerm_sentinel_log_analytics_workspace_onboarding.ai_governance_sentinel_onboarding]
+}
