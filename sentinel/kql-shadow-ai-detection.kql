@@ -1,0 +1,35 @@
+// KQL: Shadow AI Detection
+// Purpose: Detect usage of unsanctioned external AI tools (consumer chatbots, browser-based AI
+// extensions) by employees, surfaced via Defender for Cloud Apps (MCAS) discovery logs.
+// Maps to: AIR-011 in governance/ai-risk-register.csv
+// Data source: CloudAppEvents (Microsoft Defender for Cloud Apps / Microsoft 365 Defender)
+//
+// Design note: this rule intentionally looks for VOLUME and REPEATED usage patterns rather than
+// flagging every single hit against an "unsanctioned AI" app tag. A single visit to an AI tool's
+// website is weak signal on its own (could be research, could be accidental); a pattern of repeated
+// sustained usage, or usage involving file uploads, is the signal worth surfacing to an analyst.
+
+CloudAppEvents
+| where Timestamp > ago(7d)
+| where ActionType in ("FileUploaded", "WebActivity", "AppLogin")
+| where AppName has_any (
+    "ChatGPT", "Bard", "Gemini Web", "Claude.ai", "Perplexity AI",
+    "Character.AI", "Jasper", "Writesonic"
+)
+// Exclude sanctioned, governed AI surfaces already covered by this program's own monitoring
+| where AppName !has_any ("Microsoft 365 Copilot", "Azure OpenAI")
+| summarize
+    EventCount = count(),
+    FileUploadCount = countif(ActionType == "FileUploaded"),
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    DistinctApps = make_set(AppName)
+    by AccountObjectId, AccountDisplayName
+| where EventCount >= 5 or FileUploadCount >= 1
+| extend RiskSignal = case(
+    FileUploadCount >= 1, "High - file upload to unsanctioned AI tool",
+    EventCount >= 20, "Medium - sustained unsanctioned AI usage",
+    "Low - repeated unsanctioned AI access"
+)
+| project AccountDisplayName, AccountObjectId, EventCount, FileUploadCount, DistinctApps, FirstSeen, LastSeen, RiskSignal
+| order by FileUploadCount desc, EventCount desc
