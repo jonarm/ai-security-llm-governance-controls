@@ -1,0 +1,56 @@
+// KQL: Prompt Injection Attempt Signals
+// Purpose: Detect patterns indicating prompt injection attempts against the RAG Customer Service
+// Assistant, correlating Azure OpenAI content filter triggers (prompt shields) with the PEP's
+// custom pattern-based heuristic screen.
+// Maps to: AIR-003, AIR-004 in governance/ai-risk-register.csv
+// Threat model reference: T1 (direct prompt injection), T2 (indirect prompt injection)
+//   in docs/threat-model-rag-assistant.md
+//
+// Data source note: this rule expects two custom log sources that do not exist as built-in
+// Microsoft tables, since they originate from this program's own application-level logging:
+//   - AzureDiagnostics (or a custom table) capturing Azure OpenAI content filter results,
+//     specifically prompt shield trigger events, ingested via diagnostic settings on the
+//     Azure OpenAI resource
+//   - A custom table (referred to below as PEPValidationLogs_CL) capturing the PEP's own
+//     pattern-based heuristic screen results, which has no Microsoft-provided equivalent and
+//     would need to be implemented as a custom Log Analytics table fed by the PEP's own logging
+// This rule is written against the expected schema of those sources as designed in
+// guardrails/rag-input-output-validation-design.md; field names will need to be confirmed or
+// adjusted once the PEP's actual logging implementation exists and starts writing real data.
+
+let ContentFilterTriggers = AzureDiagnostics
+| where Timestamp > ago(1d)
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where Properties has "jailbreak" or Properties has "prompt_shield"
+| extend FilterResult = tostring(parse_json(Properties).contentFilterResults)
+| where FilterResult has "jailbreak" and FilterResult has "true"
+| project Timestamp, CallerIPAddress, FilterResult, Source = "AzureOpenAIPromptShield";
+
+let PEPHeuristicMatches = PEPValidationLogs_CL
+| where TimeGenerated > ago(1d)
+| where HeuristicMatch_b == true
+| project Timestamp = TimeGenerated, SessionId = SessionId_g, MatchedPattern = MatchedPattern_s,
+    Source = "PEPHeuristicScreen";
+
+// Combine both signals and look for sessions/IPs showing repeated attempts across either source -
+// a single trigger from either source alone is logged for visibility but not necessarily actionable;
+// repetition across a short window is the stronger signal of deliberate, iterative attack behaviour
+// rather than a one-off accidental match
+union
+    (ContentFilterTriggers | project Timestamp, Identifier = CallerIPAddress, Source, Detail = FilterResult),
+    (PEPHeuristicMatches | project Timestamp, Identifier = SessionId, Source, Detail = MatchedPattern)
+| summarize
+    TotalAttempts = count(),
+    DistinctSources = dcount(Source),
+    FirstAttempt = min(Timestamp),
+    LastAttempt = max(Timestamp),
+    Details = make_set(Detail)
+    by Identifier
+| where TotalAttempts >= 3
+| extend Severity = case(
+    TotalAttempts >= 10, "High",
+    TotalAttempts >= 5, "Medium",
+    "Low"
+)
+| order by TotalAttempts desc
