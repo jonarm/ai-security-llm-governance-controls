@@ -28,19 +28,44 @@ assumption true.
 
 ## Policies
 
-### CA-AI-001: Require compliant device for Copilot access
+### CA-AI-001: Copilot inherits existing tenant-wide Conditional Access (no dedicated policy)
 
-| Setting | Value |
-|---|---|
-| **Users** | All users licensed for M365 Copilot |
-| **Cloud apps** | Microsoft 365 Copilot |
-| **Conditions** | Any device platform |
-| **Grant control** | Require device to be marked as compliant (Intune) |
-| **Session control** | None additional (relies on existing M365 session policies) |
+**Investigation finding:** Unlike the Order Management Portal and other custom-registered
+applications in this program, **Microsoft 365 Copilot does not provision its own distinct
+enterprise application object in Entra ID**. Confirmed in the deployed tenant: searching Enterprise
+Applications for "Copilot" returns only the unrelated `Microsoft Azure Network Copilot` first-party
+app, and no separate object exists for the M365 Copilot Business license despite it being purchased,
+assigned, and active.
 
-**Rationale:** Copilot can summarise and surface a wide range of tenant content under the user's own
-permissions. Requiring a compliant, managed device reduces the risk of session hijacking or token
-theft from an unmanaged/unpatched endpoint being the path of least resistance into that content.
+This makes sense architecturally once checked: Copilot is a feature surfaced *inside* existing M365
+services (Word, Excel, Outlook, Teams), not a separate application users sign into. Authentication
+and authorisation for Copilot therefore flow through the same per-service cloud apps Copilot is
+embedded in — principally `Office 365 Exchange Online` (`00000002-0000-0ff1-ce00-000000000000`)
+and `Office 365 SharePoint Online` (`00000003-0000-0ff1-ce00-000000000000`) — rather than through a
+Copilot-specific app registration that Conditional Access could target directly.
+
+**What this means for CA design:** writing a dedicated "CA-AI-001: Require compliant device for
+Copilot" policy targeting a Copilot app object isn't possible, because that object doesn't exist —
+and would be redundant in any case, since CA policies scoped to `All` cloud apps already apply to
+the underlying Exchange/SharePoint authentication Copilot rides on.
+
+**Verified in this tenant:** the existing tenant-wide policies from the companion
+[`erp-identity-security-reference-architecture`](https://github.com/jonarm/erp-identity-security-reference-architecture)
+project already cover this:
+
+| Existing policy | Scope | State | Relevance to Copilot |
+|---|---|---|---|
+| CA001 - Require MFA for All Users | All cloud apps | Enabled | Applies to any Copilot session, since Copilot authenticates through Exchange/SharePoint |
+| CA002 - Block Legacy Authentication | All cloud apps | Enabled | Prevents legacy auth bypass for Copilot-adjacent sign-ins, same as any other M365 workload |
+
+**Conclusion:** Copilot access control in this program is achieved by *inheritance from existing
+tenant-wide identity controls*, not by a dedicated Copilot policy. This is documented explicitly
+here rather than silently assumed, because the original design (a standalone CA-AI-001 policy
+targeting a "Copilot app") was based on an incorrect assumption about Copilot's Entra ID footprint —
+corrected after checking the actual deployed tenant rather than relying on the architectural
+assumption alone. The original design principle still holds (CA governs the identity reaching the
+AI surface, not the AI surface itself) — it's just enforced one layer down, at the underlying
+service, rather than at a Copilot-specific object that doesn't exist.
 
 ### CA-AI-002: Require MFA for Order Management Portal access
 
@@ -106,3 +131,27 @@ module expects as input.
 - [`../docs/architecture-overview.md`](../docs/architecture-overview.md)
 - [`rag-input-output-validation-design.md`](./rag-input-output-validation-design.md)
 - [`../docs/threat-model-agentic-workflow.md`](../docs/threat-model-agentic-workflow.md)
+
+
+## Deployment notes — lessons from live tenant deployment
+
+Two corrections were made during actual deployment that are worth recording, since they reflect
+real Entra ID/Terraform behaviour that isn't obvious from the resource schema alone:
+
+1. **Copilot has no dedicated service principal to target.** Originally scoped as CA-AI-001
+   (see the dedicated note above) — confirmed by direct inspection of Enterprise Applications in
+   the live tenant, not assumed from documentation.
+
+2. **`included_applications` expects the application's `appId`, not the object ID of the app
+   registration or its service principal.** The first deployment attempt used app registration
+   object IDs and failed with `ServicePrincipalNotFound`. The second attempt used the service
+   principal's object ID (a reasonable next guess, since CA conceptually targets service
+   principals) and failed identically. The working value was the `appId` GUID — the same
+   identifier visible on the app registration's overview page, distinct from both its object ID
+   and its service principal's object ID. This is a genuinely easy mix-up since Entra ID exposes
+   three different GUIDs (app registration object ID, application appId, service principal object
+   ID) for what feels like "the same app," and only one of them is valid in this specific field.
+
+Both issues were resolved by deploying against the live tenant rather than assuming the Terraform
+schema's field naming matched Entra ID's conceptual model, then correcting based on the actual API
+error returned.
