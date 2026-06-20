@@ -18,7 +18,7 @@ terraform {
 # CA-AI-002: Require MFA and compliant device for Order Management Portal access
 resource "azuread_conditional_access_policy" "order_mgmt_mfa_compliant_device" {
   display_name = "CA-AI-002: Require MFA and compliant device for Order Management Portal"
-  state         = "enabled"
+  state        = "enabled"
 
   conditions {
     client_app_types = ["all"]
@@ -38,8 +38,8 @@ resource "azuread_conditional_access_policy" "order_mgmt_mfa_compliant_device" {
   }
 
   session_controls {
-    sign_in_frequency               = 4
-    sign_in_frequency_period         = "hours"
+    sign_in_frequency                     = 4
+    sign_in_frequency_period              = "hours"
     sign_in_frequency_authentication_type = "primaryAndSecondaryAuthentication"
   }
 }
@@ -47,7 +47,7 @@ resource "azuread_conditional_access_policy" "order_mgmt_mfa_compliant_device" {
 # CA-AI-003: Block legacy authentication for AI application service principals
 resource "azuread_conditional_access_policy" "ai_apps_block_legacy_auth" {
   display_name = "CA-AI-003: Block legacy authentication for AI application service principals"
-  state         = "enabled"
+  state        = "enabled"
 
   conditions {
     client_app_types = ["exchangeActiveSync", "other"]
@@ -73,7 +73,7 @@ resource "azuread_conditional_access_policy" "ai_apps_block_legacy_auth" {
 # CA-AI-004: Require PIM activation and MFA for agent-workflow admin configuration access
 resource "azuread_conditional_access_policy" "agent_admin_pim_mfa" {
   display_name = "CA-AI-004: Require PIM activation and MFA for agent-workflow admin access"
-  state         = "enabled"
+  state        = "enabled"
 
   conditions {
     client_app_types = ["all"]
