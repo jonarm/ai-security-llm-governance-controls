@@ -1,0 +1,63 @@
+// KQL: Excessive Agent Tool-Call Activity
+// Purpose: Detect potential excessive agency or threshold-splitting abuse in the Agentic
+// Order-Management Workflow, by tracking tool-call frequency and cumulative refund value per
+// order/customer, independent of any single transaction's approval threshold.
+// Maps to: AIR-007, AIR-008, AIR-009 in governance/ai-risk-register.csv
+// Threat model reference: T1 (excessive agency), T3 (tool-call abuse via repeated low-value
+//   actions) in docs/threat-model-agentic-workflow.md
+//
+// Data source note: this rule expects a custom table (AgentToolCallLogs_CL) capturing every
+// tool invocation made by the agent orchestrator - tool name, parameters, calling user, target
+// order/customer, and outcome. This does not exist as a Microsoft-provided table; it represents
+// the application-level audit logging the agent orchestrator itself is responsible for emitting,
+// as referenced in docs/architecture-overview.md's note that "every AI Plane component logs to
+// Sentinel." Field names are illustrative of the expected schema, pending real implementation.
+
+let ToolCalls = AgentToolCallLogs_CL
+| where TimeGenerated > ago(1d)
+| project
+    Timestamp = TimeGenerated,
+    CallingUser = CallingUserId_g,
+    ToolName = ToolName_s,
+    OrderId = TargetOrderId_s,
+    CustomerId = TargetCustomerId_s,
+    ActionAmount = toreal(ActionAmount_d),
+    RequiredApproval = RequiredApproval_b,
+    ApprovalGranted = ApprovalGranted_b;
+
+// Signal 1: velocity - high frequency of refund/shipping-update tool calls against the same
+// order or customer in a short window, regardless of whether each individual call stayed under
+// the per-transaction approval threshold
+let VelocitySignal = ToolCalls
+| where ToolName in ("IssueRefund", "UpdateShippingAddress")
+| summarize
+    CallCount = count(),
+    CumulativeAmount = sumif(ActionAmount, ToolName == "IssueRefund"),
+    DistinctTools = make_set(ToolName),
+    FirstCall = min(Timestamp),
+    LastCall = max(Timestamp)
+    by OrderId, CustomerId
+| where CallCount >= 3 or CumulativeAmount >= 500
+| extend SignalType = "Velocity - repeated tool calls or cumulative refund amount against same order/customer";
+
+// Signal 2: approval bypass attempts - tool calls flagged as requiring approval where the
+// orchestrator's own log shows approval was not actually granted before execution (would indicate
+// a failure in the human-approval gate control itself, not just suspicious usage)
+let ApprovalBypassSignal = ToolCalls
+| where RequiredApproval == true and ApprovalGranted == false
+| project Timestamp, CallingUser, ToolName, OrderId, CustomerId, ActionAmount
+| extend SignalType = "Approval bypass - action requiring approval executed without granted approval";
+
+// Signal 3: per-user tool-call volume - a single calling identity invoking tools at a frequency
+// inconsistent with normal one-at-a-time customer service handling (possible compromised account
+// or runaway automation calling the agent programmatically rather than through normal usage)
+let UserVolumeSignal = ToolCalls
+| summarize CallCount = count() by CallingUser, bin(Timestamp, 1h)
+| where CallCount >= 20
+| extend SignalType = "User volume - unusually high tool-call frequency from single identity in 1h window";
+
+union
+    (VelocitySignal | project Timestamp = LastCall, Identifier = strcat(OrderId, " / ", CustomerId), SignalType, Detail = strcat("CallCount=", CallCount, " CumulativeAmount=", CumulativeAmount)),
+    (ApprovalBypassSignal | project Timestamp, Identifier = CallingUser, SignalType, Detail = strcat(ToolName, " on order ", OrderId)),
+    (UserVolumeSignal | project Timestamp, Identifier = CallingUser, SignalType, Detail = strcat("CallCount=", CallCount))
+| order by Timestamp desc
