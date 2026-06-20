@@ -81,6 +81,31 @@ feeds [`kql-anomalous-copilot-data-access.kql`](../sentinel/kql-anomalous-copilo
 which looks for volume or pattern anomalies in exactly this audit signal, rather than trying to
 block every individual legitimate access.
 
+## Deployment notes — lessons from live tenant deployment
+
+Two corrections were made during actual deployment, consistent with the practice established for
+the Entra Conditional Access policies in this program:
+
+1. **Sensitivity-label-based DLP conditions don't support all workload combinations.** The original
+   policy design included Teams chat/channel messages in scope. Live deployment failed with
+   `SensitivityLabelsNotSupportedForNonSupportedWorkloadsException` — Teams is not among the
+   workloads Purview supports for label-based conditions (supported set: Exchange, SharePoint,
+   OneDriveForBusiness, EndpointDevices, OnPremisesScanner, PowerBI, Applications). The deployed
+   policy is scoped to SharePoint and OneDrive only; Teams coverage for this specific audit signal
+   is a known gap versus the original design, not yet closed.
+
+2. **Policy deletion in Purview is asynchronous.** An initial naming conflict during setup required
+   deleting and recreating the policy; `Remove-DlpCompliancePolicy` returned successfully but the
+   underlying object remained in a `PendingDeletion` state for longer than was practical to wait on
+   mid-build. The live policy is therefore named `DLP-AI-003-v2` rather than `DLP-AI-003` — a naming
+   artifact of this deletion timing, not a functional difference from the design.
+
+3. **The correct PowerShell syntax for a sensitivity-label condition** requires a nested
+   `operator`/`groups`/`labels` structure with an explicit `type = "Sensitivity"` field per label —
+   confirmed against Microsoft's own documentation after two incorrect attempts using flatter
+   hashtable shapes that are valid for built-in sensitive information types but not for sensitivity
+   labels specifically.
+
 ## What this DLP layer deliberately does not cover
 
 These policies govern content *already inside* the M365 tenant being referenced by Copilot. They do
