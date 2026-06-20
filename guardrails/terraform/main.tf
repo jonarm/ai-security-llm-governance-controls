@@ -7,30 +7,13 @@ terraform {
   }
 }
 
-# CA-AI-001: Require compliant device for Copilot access
-resource "azuread_conditional_access_policy" "copilot_compliant_device" {
-  display_name = "CA-AI-001: Require compliant device for Copilot access"
-  state         = "enabled"
-
-  conditions {
-    client_app_types    = ["all"]
-    sign_in_risk_levels  = []
-    user_risk_levels     = []
-
-    applications {
-      included_applications = [var.copilot_app_id]
-    }
-
-    users {
-      included_groups = [var.copilot_licensed_users_group_id]
-    }
-  }
-
-  grant_controls {
-    operator          = "AND"
-    built_in_controls = ["compliantDevice"]
-  }
-}
+# CA-AI-001: Intentionally not implemented as a dedicated policy.
+# Investigation against the deployed tenant confirmed Microsoft 365 Copilot has no distinct
+# enterprise application object in Entra ID - it authenticates through the underlying
+# Office 365 Exchange Online / SharePoint Online service principals. Coverage is inherited from
+# the tenant-wide CA001 (Require MFA for All Users) and CA002 (Block Legacy Authentication)
+# policies deployed in the companion erp-identity-security-reference-architecture project, both
+# of which target "All" cloud apps. See entra-conditional-access-ai-apps.md for the full writeup.
 
 # CA-AI-002: Require MFA and compliant device for Order Management Portal access
 resource "azuread_conditional_access_policy" "order_mgmt_mfa_compliant_device" {
@@ -71,7 +54,6 @@ resource "azuread_conditional_access_policy" "ai_apps_block_legacy_auth" {
 
     applications {
       included_applications = [
-        var.copilot_app_id,
         var.order_mgmt_portal_app_id,
         var.rag_backend_service_principal_id
       ]

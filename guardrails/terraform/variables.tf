@@ -1,13 +1,3 @@
-variable "copilot_app_id" {
-  description = "Object ID of the Microsoft 365 Copilot enterprise application in Entra ID"
-  type        = string
-}
-
-variable "copilot_licensed_users_group_id" {
-  description = "Object ID of the Entra ID group containing all users licensed for M365 Copilot"
-  type        = string
-}
-
 variable "order_mgmt_portal_app_id" {
   description = "Object ID of the Order Management Portal app registration in Entra ID"
   type        = string
