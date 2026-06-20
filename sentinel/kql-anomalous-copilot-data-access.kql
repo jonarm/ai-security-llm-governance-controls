@@ -6,25 +6,23 @@
 // Data source: OfficeActivity (Copilot interaction events) joined with DLP audit events
 
 let CopilotEvents = OfficeActivity
-| where Timestamp > ago(1d)
+| where TimeGenerated > ago(1d)
 | where Operation has "Copilot" or RecordType == "CopilotInteraction"
-| project Timestamp, UserId, Operation, ClientIP;
+| project TimeGenerated, UserId, Operation, ClientIP;
 let DlpAuditEvents = OfficeActivity
-| where Timestamp > ago(1d)
+| where TimeGenerated > ago(1d)
 | where Operation == "DlpRuleMatch"
 | where RuleName has "DLP-AI-003"
-| project Timestamp, UserId, RuleName, SensitiveInfoType = tostring(parse_json(tostring(AuditData)).SensitiveInfoType);
+| project TimeGenerated, UserId, RuleName, SensitiveInfoType = tostring(parse_json(tostring(AuditData)).SensitiveInfoType);
 CopilotEvents
 | join kind=inner (DlpAuditEvents) on UserId
-| where abs(datetime_diff('minute', Timestamp, Timestamp1)) <= 5
+| where abs(datetime_diff('minute', TimeGenerated, TimeGenerated1)) <= 5
 | summarize
     CopilotInteractionsWithSensitiveData = count(),
     DistinctSensitiveInfoTypes = make_set(SensitiveInfoType),
-    FirstEvent = min(Timestamp),
-    LastEvent = max(Timestamp)
+    FirstEvent = min(TimeGenerated),
+    LastEvent = max(TimeGenerated1)
     by UserId
-// Baseline threshold - tune based on observed normal usage per role once deployed;
-// starting conservative for a small lab tenant where any volume is notable
 | where CopilotInteractionsWithSensitiveData >= 10
 | extend AnomalyReason = "Unusually high volume of Copilot interactions referencing Confidential customer data within 24h"
 | order by CopilotInteractionsWithSensitiveData desc

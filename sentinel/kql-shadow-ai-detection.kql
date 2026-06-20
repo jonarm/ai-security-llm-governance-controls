@@ -17,7 +17,7 @@ CloudAppEvents
     "Character.AI", "Jasper", "Writesonic"
 )
 // Exclude sanctioned, governed AI surfaces already covered by this program's own monitoring
-| where AppName !has_any ("Microsoft 365 Copilot", "Azure OpenAI")
+| where not(AppName has_any ("Microsoft 365 Copilot", "Azure OpenAI"))
 | summarize
     EventCount = count(),
     FileUploadCount = countif(ActionType == "FileUploaded"),
