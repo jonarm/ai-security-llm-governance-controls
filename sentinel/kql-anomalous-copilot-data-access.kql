@@ -7,21 +7,20 @@
 
 let CopilotEvents = OfficeActivity
 | where TimeGenerated > ago(1d)
-| where Operation has "Copilot" or RecordType == "CopilotInteraction"
+| where Operation has "Copilot"
 | project TimeGenerated, UserId, Operation, ClientIP;
-let DlpAuditEvents = OfficeActivity
+let SensitiveLabelEvents = OfficeActivity
 | where TimeGenerated > ago(1d)
-| where Operation == "DlpRuleMatch"
-| where AuditData has "DLP-AI-003"
-| project TimeGenerated, UserId, AuditData;
+| where SensitivityLabelId == "2cdc1dbe-1dd4-4066-84d5-43827425d4c1"
+| project TimeGenerated, UserId, SensitivityLabelId, SRPolicyName;
 CopilotEvents
-| join kind=inner (DlpAuditEvents) on UserId
+| join kind=inner (SensitiveLabelEvents) on UserId
 | where abs(datetime_diff('minute', TimeGenerated, TimeGenerated1)) <= 5
 | summarize
     CopilotInteractionsWithSensitiveData = count(),
     FirstEvent = min(TimeGenerated),
     LastEvent = max(TimeGenerated1)
     by UserId
-| where CopilotInteractionsWithSensitiveData >= 10
-| extend AnomalyReason = "Unusually high volume of Copilot interactions referencing Confidential customer data within 24h"
+| where CopilotInteractionsWithSensitiveData >= 1
+| extend AnomalyReason = "Copilot interaction correlated with content labelled Confidential - Customer Data within 5 minutes"
 | order by CopilotInteractionsWithSensitiveData desc
