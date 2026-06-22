@@ -1,6 +1,6 @@
 // KQL: Anomalous Copilot Data Access
 // Purpose: Detect unusual volume or pattern of Microsoft 365 Copilot interactions referencing
-// sensitive content, correlating Copilot usage events with the audit signal from DLP-AI-003
+// sensitive content, correlating Copilot usage events with the audit signal from DLP-AI-003-v2
 // (audit-only policy on Confidential - Customer Data content referenced via Copilot).
 // Maps to: AIR-002 in governance/ai-risk-register.csv
 // Data source: OfficeActivity (Copilot interaction events) joined with DLP audit events
