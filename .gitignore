@@ -95,3 +95,5 @@ Thumbs.db
 # ===== Logs / temp =====
 *.log
 *.tmp
+# Editor lock files
+.~lock.*#
