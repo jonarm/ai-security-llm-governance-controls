@@ -12,14 +12,13 @@ let CopilotEvents = OfficeActivity
 let DlpAuditEvents = OfficeActivity
 | where TimeGenerated > ago(1d)
 | where Operation == "DlpRuleMatch"
-| where RuleName has "DLP-AI-003"
-| project TimeGenerated, UserId, RuleName, SensitiveInfoType = tostring(parse_json(tostring(AuditData)).SensitiveInfoType);
+| where AuditData has "DLP-AI-003"
+| project TimeGenerated, UserId, AuditData;
 CopilotEvents
 | join kind=inner (DlpAuditEvents) on UserId
 | where abs(datetime_diff('minute', TimeGenerated, TimeGenerated1)) <= 5
 | summarize
     CopilotInteractionsWithSensitiveData = count(),
-    DistinctSensitiveInfoTypes = make_set(SensitiveInfoType),
     FirstEvent = min(TimeGenerated),
     LastEvent = max(TimeGenerated1)
     by UserId
