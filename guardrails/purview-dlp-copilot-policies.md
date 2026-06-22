@@ -117,6 +117,38 @@ DLP's native integration is specific to Microsoft 365 Copilot and does not exten
 Azure OpenAI-based applications without separate integration work (out of scope for this program's
 current phase).
 
+## Deployment notes — live detection verification status
+
+The policy and rule described above were deployed and independently verified correct at every
+configuration layer:
+
+- Sensitivity label "Confidential - Customer Data" created and published (label policy fully synced)
+- Label confirmed applied to a real test file in OneDrive
+- `DLP-AI-003-v2` policy confirmed `Enabled: True`, `Mode: TestWithoutNotifications`, scoped to
+  `Exchange, SharePoint, OneDriveForBusiness`
+- Rule `DLP-AI-003-Rule-AuditConfidentialCustomerData` confirmed `Disabled: False`,
+  `GenerateAlert: True`, `GenerateIncidentReport: SiteAdmin`, correctly referencing the label's GUID
+
+Despite this, no detection event was observed across every diagnostic surface checked in the
+unified Purview portal: Compliance alerts, DSPM, DSPM for AI, and all three Data Loss Prevention
+Explorers (Data Explorer, Content Explorer (Classic), Activity Explorer). The test file did not
+appear as a discovered sensitive-data asset in any of these views, despite multiple deliberate
+trigger actions (edit, download, share) performed well outside any reasonable propagation window
+for the other delays encountered elsewhere in this program (which were measured in minutes to
+roughly 24 hours).
+
+The most likely explanation, based on Microsoft's own and practitioner documentation: SharePoint
+and OneDrive content classification in Purview depends on a **crawl-based indexing cycle**, not
+real-time scanning — content must be picked up by this crawl before any classification-aware
+feature (DLP, Content Explorer, Activity Explorer) can act on it at all. This crawl cycle is
+documented as capable of taking substantially longer than other propagation delays encountered in
+this program, in some reported cases multiple days, particularly on smaller or newer tenants.
+
+**Conclusion:** this control is configured and verified correct end-to-end at the policy/rule
+layer, consistent with the rest of this program's "deploy for real, document honestly" approach.
+Live detection firing was not confirmed within the timeframe available for this build, and that
+limitation is recorded here rather than implied to be resolved.
+
 ## Related documents
 
 - [`entra-conditional-access-ai-apps.md`](./entra-conditional-access-ai-apps.md)
