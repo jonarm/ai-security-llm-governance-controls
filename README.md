@@ -2,9 +2,11 @@
 
 ## Executive Summary
 
-This project demonstrates a production-style AI Security and Governance program implemented for a fictitious retail organisation, Contoso Retail Group.
+This project demonstrates a production-style AI Security and Governance program implemented for a
+fictitious retail organisation, Contoso Retail Group.
 
-It shows how modern AI systems (Microsoft Copilot, RAG applications, and agentic workflows) can be secured using a combination of:
+It shows how modern AI systems (Microsoft Copilot, RAG applications, and agentic workflows) can be
+secured using a combination of:
 
 - Identity security (Entra ID Conditional Access)
 - Data protection (Microsoft Purview DLP & Sensitivity Labels)
@@ -13,41 +15,82 @@ It shows how modern AI systems (Microsoft Copilot, RAG applications, and agentic
 - AI governance frameworks (OWASP LLM Top 10, NIST AI RMF, ISO/IEC 42001, MITRE ATLAS)
 
 The project bridges the gap between AI governance theory and real cloud security implementation.
+
+---
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    subgraph Systems["AI Systems"]
+        COPILOT[M365 Copilot]
+        RAG[RAG Customer Assistant]
+        AGENT[Agentic Order Workflow]
+    end
+
+    subgraph Controls["Security Controls"]
+        CA[Entra Conditional Access]
+        DLP[Purview DLP and Sensitivity Labels]
+        SENT[Sentinel Detection]
+    end
+
+    subgraph Governance["Governance Layer"]
+        FW[OWASP LLM Top 10 / NIST AI RMF / ISO 42001 / MITRE ATLAS]
+        RISK[Risk Register and Use-Case Tiering]
+    end
+
+    Systems --> Controls --> Governance
+```
+
+A simplified view — see [`docs/architecture-overview.md`](./docs/architecture-overview.md) for the
+full diagram with trust boundaries and data flows between components.
+
+---
+
+## Suggested reading order
+
+1. [`docs/architecture-overview.md`](./docs/architecture-overview.md) — full system diagram, trust boundaries, design principles
+2. [`docs/threat-model-rag-assistant.md`](./docs/threat-model-rag-assistant.md) and [`docs/threat-model-agentic-workflow.md`](./docs/threat-model-agentic-workflow.md) — STRIDE + OWASP LLM Top 10 threat modelling
+3. [`docs/framework-mapping.md`](./docs/framework-mapping.md) — control mapping across OWASP, NIST AI RMF, ISO/IEC 42001, MITRE ATLAS
+4. [`guardrails/`](./guardrails/) and [`sentinel/`](./sentinel/) — where the threat models become real policies and detection rules; read the **deployment notes** sections specifically, since they document real configuration issues found and fixed against a live tenant
+5. [`powerbi/`](./powerbi/) — governance and security operations reporting
+
 ---
 
 ## Key Outcomes
 
 | Capability | Value | Evidence |
 |------------|------|----------|
-| AI Systems Modelled | 3 | `docs/architecture-overview.md` |
-| AI Threat Models | 2 | `docs/threat-model-*` |
-| Conditional Access Policies | 3 deployed (4 designed)  | `guardrails/terraform/` |
-| Purview DLP Policies | 1 (audit-only, config verified) | `guardrails/` + `screenshots/purview-dlp/` |
-| Sentinel Detection Rules | 1 deployed live (4 designed) | `sentinel/` |
-| Governance Frameworks Mapped | 4 | `docs/framework-mapping.md` |
-| Power BI Dashboards | 1 (3 pages) | `powerbi/` |
+| AI Systems Modelled | 3 | [`docs/architecture-overview.md`](./docs/architecture-overview.md) |
+| AI Threat Models | 2 | [`docs/threat-model-rag-assistant.md`](./docs/threat-model-rag-assistant.md), [`docs/threat-model-agentic-workflow.md`](./docs/threat-model-agentic-workflow.md) |
+| Conditional Access Policies | 3 deployed (4 designed) | [`guardrails/terraform/`](./guardrails/terraform/) |
+| Purview DLP Policies | 1 (audit-only, config verified) | [`guardrails/`](./guardrails/) + [`screenshots/purview-dlp/`](./screenshots/purview-dlp/) |
+| Sentinel Detection Rules | 1 deployed live (4 designed) | [`sentinel/`](./sentinel/) |
+| Governance Frameworks Mapped | 4 | [`docs/framework-mapping.md`](./docs/framework-mapping.md) |
+| Power BI Dashboards | 1 (3 pages) | [`powerbi/`](./powerbi/) |
 
- "See 'What's actually live vs. reference design' below for exact deployment status of each item."
+*See ["What's actually live vs. what's reference design"](#whats-actually-live-vs-whats-reference-design) below for exact deployment status of each item.*
+
 ---
 
-## Evidence 
+## Evidence
 
 ### Identity & Access Controls
-- `screenshots/entra-conditional-access/`
+- [`screenshots/entra-conditional-access/`](./screenshots/entra-conditional-access/)
 
 ### Data Protection (Purview)
-- `screenshots/purview-dlp/`
+- [`screenshots/purview-dlp/`](./screenshots/purview-dlp/)
 
 ### Copilot Governance
-- `screenshots/copilot-admin-center/`
+- [`screenshots/copilot-admin-center/`](./screenshots/copilot-admin-center/)
 
 ### Detection Engineering
-- `sentinel/`
-- `screenshots/sentinel-alerts/`
+- [`sentinel/`](./sentinel/)
+- [`screenshots/sentinel-alerts/`](./screenshots/sentinel-alerts/)
 
 ### Reporting Layer
-- `powerbi/`
-- `screenshots/powerbi-dashboard/`
+- [`powerbi/`](./powerbi/)
+- [`screenshots/powerbi-dashboard/`](./screenshots/powerbi-dashboard/)
 
 ---
 
@@ -59,23 +102,15 @@ This project models an AI-enabled retail organisation deploying three systems:
 - RAG-based customer support assistant
 - Agentic order management workflow
 
-Each system introduces different AI risk profiles, requiring layered controls across identity, data, detection, and governance systems.
+Each system introduces different AI risk profiles, requiring layered controls across identity,
+data, detection, and governance systems. Full detail on each system and its specific risk profile
+is in [`docs/architecture-overview.md`](./docs/architecture-overview.md) and ["The scenario"](#the-scenario) below.
 
 The architecture follows three principles:
 
 - Least privilege for AI access
 - Data-centric protection for AI outputs
 - Continuous monitoring of AI behaviour
-
----
-
-## AI Systems in Scope
-
-| System | Description | Risk |
-|--------|-------------|------|
-| Copilot | Tenant-wide productivity AI | Data leakage via over-permissioned users |
-| RAG Assistant | Customer service chatbot using Azure OpenAI | Prompt injection + PII exposure |
-| Agentic Workflow | Automated order management agent | High-risk tool execution + autonomy abuse |
 
 ---
 
@@ -86,17 +121,18 @@ diving in:
 
 | Component | Status |
 |---|---|
-| Entra Conditional Access policies (3 of 4 designed) | **Live** — deployed via Terraform, verified via Azure CLI and portal |
+| Entra Conditional Access policies (3 of 4 designed) | **Live** — deployed via Terraform, verified via Azure CLI and portal. See [`guardrails/entra-conditional-access-ai-apps.md`](./guardrails/entra-conditional-access-ai-apps.md) |
 | Purview sensitivity labels and label policy | **Live** — created, published, applied to a real test document |
 | Purview DLP policy (audit-only) | **Live, configuration verified** — policy/rule deployed correctly; live detection event unconfirmed within the build timeframe (see [`guardrails/purview-dlp-copilot-policies.md`](./guardrails/purview-dlp-copilot-policies.md) for the full investigation) |
-| Microsoft Sentinel workspace and onboarding | **Live** — deployed via Terraform |
+| Microsoft Sentinel workspace and onboarding | **Live** — deployed via Terraform, see [`terraform/`](./terraform/) |
 | Sentinel Analytics Rule: Anomalous Copilot Data Access | **Live and deployed** — built from real tenant schema after correcting several documentation-based assumptions (see [`sentinel/README.md`](./sentinel/README.md)) |
-| Sentinel Analytics Rule: Shadow AI Detection | **Reference design** — blocked by a genuine Defender for Cloud Apps licensing/connector limitation, investigated and documented |
-| RAG assistant and agentic workflow threat models, guardrail designs | **Design only** — these are architectural specifications, not running applications; their underlying platform dependencies (Azure OpenAI, Entra ID) are real services this program has configured |
+| Sentinel Analytics Rule: Shadow AI Detection | **Reference design** — blocked by a genuine Defender for Cloud Apps licensing/connector limitation, investigated and documented in [`sentinel/README.md`](./sentinel/README.md) |
+| RAG assistant and agentic workflow threat models, guardrail designs | **Design only** — these are architectural specifications, not running applications; their underlying platform dependencies (Azure OpenAI, Entra ID) are real services this program has configured. See [`guardrails/rag-input-output-validation-design.md`](./guardrails/rag-input-output-validation-design.md) and [`guardrails/azure-openai-content-filter-config.md`](./guardrails/azure-openai-content-filter-config.md) |
 | Sentinel rules for prompt injection and agent tool-call abuse | **Reference design** — depend on custom application logging from components that are designed but not built as running code |
-| Power BI governance and security operations dashboard | **Built** — data model, DAX measures, and dashboard pages, partly using real risk register data and partly using clearly-labelled fabricated sample telemetry |
+| Power BI governance and security operations dashboard | **Built** — data model, DAX measures, and dashboard pages, partly using real risk register data and partly using clearly-labelled fabricated sample telemetry. See [`powerbi/README.md`](./powerbi/README.md) |
 
 ---
+
 ## The scenario
 
 **Contoso Retail Group** is a mid-size retailer rolling out three AI capabilities:
@@ -112,20 +148,21 @@ loyalty/CRM data, merchant data) that show up in real AI security reviews, witho
 real company's data or systems.
 
 ---
+
 ## Repository structure
 
 | Folder | Contents |
 |---|---|
-| `docs/` | Architecture overview, STRIDE/LLM threat models, framework control mapping |
-| `governance/` | AI risk register, vendor review template, use-case risk tiering model |
-| `guardrails/` | Entra Conditional Access, Purview DLP, Azure OpenAI content filters, RAG input/output validation design (+ Terraform for CA policies) |
-| `sentinel/` | KQL detection rules — one deployed live, one blocked by a documented licensing gap, two reference design by program scope |
-| `terraform/` | IaC for the Sentinel workspace, analytics rule deployment, and the Entra Conditional Access policies |
-| `powerbi/` | Dashboard data model, DAX measures, sample datasets, and build instructions |
-| `screenshots/` | Evidence of deployed controls — Entra CA, Purview labels/DLP, Sentinel analytics rules and live data, Copilot license and real interaction, Power BI dashboard |
-
+| [`docs/`](./docs/) | Architecture overview, STRIDE/LLM threat models, framework control mapping |
+| [`governance/`](./governance/) | AI risk register, vendor review template, use-case risk tiering model |
+| [`guardrails/`](./guardrails/) | Entra Conditional Access, Purview DLP, Azure OpenAI content filters, RAG input/output validation design (+ Terraform for CA policies) |
+| [`sentinel/`](./sentinel/) | KQL detection rules — one deployed live, one blocked by a documented licensing gap, two reference design by program scope |
+| [`terraform/`](./terraform/) | IaC for the Sentinel workspace, analytics rule deployment, and the Entra Conditional Access policies |
+| [`powerbi/`](./powerbi/) | Dashboard data model, DAX measures, sample datasets, and build instructions |
+| [`screenshots/`](./screenshots/) | Evidence of deployed controls — Entra CA, Purview labels/DLP, Sentinel analytics rules and live data, Copilot license and real interaction, Power BI dashboard |
 
 ---
+
 ## Tooling
 
 - **Microsoft Entra ID** — Conditional Access, identity-based AI app access control
@@ -135,8 +172,8 @@ real company's data or systems.
 - **Terraform** — infrastructure as code for the above
 - **Power BI** — governance and security operations reporting
 
-
 ---
+
 ## Frameworks referenced
 
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
@@ -144,14 +181,19 @@ real company's data or systems.
 - [ISO/IEC 42001:2023 — AI Management Systems](https://www.iso.org/standard/81230.html)
 - [MITRE ATLAS](https://atlas.mitre.org/)
 
+See [`docs/framework-mapping.md`](./docs/framework-mapping.md) for how this program's specific
+controls map to each framework.
 
 ---
+
 ## Related work
 
 A companion repository, [`erp-identity-security-reference-architecture`](https://github.com/jonarm/erp-identity-security-reference-architecture),
 covers identity and access security for a Dynamics 365 F&O ERP deployment using a similar
 threat-model-to-control structure.
+
 ---
+
 ## Disclaimer
 
 This is a portfolio project. Contoso Retail Group, its data, and all findings are fictitious.
