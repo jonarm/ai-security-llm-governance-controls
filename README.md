@@ -1,25 +1,83 @@
 # AI Security & LLM Governance Controls Program
 
-A reference implementation of an AI security and governance program for a fictitious retail
-organisation, **Contoso Retail Group**, covering threat modelling, guardrails, detection
-engineering, and risk reporting across three AI-enabled systems — with real, live deployment
-against a Microsoft 365 / Azure tenant, not just design documentation.
+## Executive Summary
 
-This repository is a practitioner-built portfolio project. It is designed to demonstrate
-hands-on capability across AI/LLM security, AI governance frameworks, and cloud security
-engineering — not to document a real deployment for a real organisation. All organisation names,
-data, and findings are fictitious; the infrastructure, policies, and detection rules deployed
-against the live tenant, and the troubleshooting required to get them working, are real.
+This project demonstrates a production-style AI Security and Governance program implemented for a fictitious retail organisation, Contoso Retail Group.
 
-## Why this exists
+It shows how modern AI systems (Microsoft Copilot, RAG applications, and agentic workflows) can be secured using a combination of:
 
-Most public AI security content falls into one of two buckets: high-level governance frameworks
-with no technical implementation, or technical LLM security write-ups with no governance context.
-This repo tries to connect both — starting from a threat model, mapping it to recognised
-frameworks (OWASP LLM Top 10, NIST AI RMF, ISO/IEC 42001, MITRE ATLAS), and then implementing the
-resulting controls as actual Conditional Access policies, Purview DLP rules, Sentinel detections,
-and Terraform IaC — deployed and verified against a live Microsoft 365 Business Premium and Azure
-trial tenant, the same way this work would be scoped and delivered inside a real security program.
+- Identity security (Entra ID Conditional Access)
+- Data protection (Microsoft Purview DLP & Sensitivity Labels)
+- Threat detection (Microsoft Sentinel)
+- Infrastructure-as-Code (Terraform)
+- AI governance frameworks (OWASP LLM Top 10, NIST AI RMF, ISO/IEC 42001, MITRE ATLAS)
+
+The project bridges the gap between AI governance theory and real cloud security implementation.
+---
+
+## Key Outcomes
+
+| Capability | Value | Evidence |
+|------------|------|----------|
+| AI Systems Modelled | 3 | `docs/architecture-overview.md` |
+| AI Threat Models | 2 | `docs/threat-model-*` |
+| Conditional Access Policies | 3 deployed (4 designed)  | `guardrails/terraform/` |
+| Purview DLP Policies | 1 (audit-only, config verified) | `guardrails/` + `screenshots/purview-dlp/` |
+| Sentinel Detection Rules | 1 deployed live (4 designed) | `sentinel/` |
+| Governance Frameworks Mapped | 4 | `docs/framework-mapping.md` |
+| Power BI Dashboards | 1 (3 pages) | `powerbi/` |
+
+ "See 'What's actually live vs. reference design' below for exact deployment status of each item."
+---
+
+## Evidence 
+
+### Identity & Access Controls
+- `screenshots/entra-conditional-access/`
+
+### Data Protection (Purview)
+- `screenshots/purview-dlp/`
+
+### Copilot Governance
+- `screenshots/copilot-admin-center/`
+
+### Detection Engineering
+- `sentinel/`
+- `screenshots/sentinel-alerts/`
+
+### Reporting Layer
+- `powerbi/`
+- `screenshots/powerbi-dashboard/`
+
+---
+
+## Overview
+
+This project models an AI-enabled retail organisation deploying three systems:
+
+- Microsoft 365 Copilot (enterprise productivity AI)
+- RAG-based customer support assistant
+- Agentic order management workflow
+
+Each system introduces different AI risk profiles, requiring layered controls across identity, data, detection, and governance systems.
+
+The architecture follows three principles:
+
+- Least privilege for AI access
+- Data-centric protection for AI outputs
+- Continuous monitoring of AI behaviour
+
+---
+
+## AI Systems in Scope
+
+| System | Description | Risk |
+|--------|-------------|------|
+| Copilot | Tenant-wide productivity AI | Data leakage via over-permissioned users |
+| RAG Assistant | Customer service chatbot using Azure OpenAI | Prompt injection + PII exposure |
+| Agentic Workflow | Automated order management agent | High-risk tool execution + autonomy abuse |
+
+---
 
 ## What's actually live vs. what's reference design
 
@@ -38,6 +96,7 @@ diving in:
 | Sentinel rules for prompt injection and agent tool-call abuse | **Reference design** — depend on custom application logging from components that are designed but not built as running code |
 | Power BI governance and security operations dashboard | **Built** — data model, DAX measures, and dashboard pages, partly using real risk register data and partly using clearly-labelled fabricated sample telemetry |
 
+---
 ## The scenario
 
 **Contoso Retail Group** is a mid-size retailer rolling out three AI capabilities:
@@ -52,7 +111,8 @@ Retail was chosen deliberately: it forces the same high-risk data flows (PII, pa
 loyalty/CRM data, merchant data) that show up in real AI security reviews, without using any
 real company's data or systems.
 
-## What's in this repo
+---
+## Repository structure
 
 | Folder | Contents |
 |---|---|
@@ -64,32 +124,8 @@ real company's data or systems.
 | `powerbi/` | Dashboard data model, DAX measures, sample datasets, and build instructions |
 | `screenshots/` | Evidence of deployed controls — Entra CA, Purview labels/DLP, Sentinel analytics rules and live data, Copilot license and real interaction, Power BI dashboard |
 
-## How to navigate this repo
 
-If you're reviewing this for a hiring decision, the fastest path through it is:
-
-1. **[`docs/architecture-overview.md`](./docs/architecture-overview.md)** — start here. Diagram
-   of all three systems, trust boundaries, and the design principles every other document builds on.
-2. **[`docs/threat-model-rag-assistant.md`](./docs/threat-model-rag-assistant.md)** and
-   **[`docs/threat-model-agentic-workflow.md`](./docs/threat-model-agentic-workflow.md)** — the
-   threat modelling work, mapped to OWASP LLM Top 10.
-3. **[`docs/framework-mapping.md`](./docs/framework-mapping.md)** — how the controls in this repo
-   map across OWASP LLM Top 10, NIST AI RMF, ISO/IEC 42001, and MITRE ATLAS.
-4. **`guardrails/`** and **`sentinel/`** — where the threat model becomes an actual policy or
-   detection rule, with Terraform behind the Conditional Access and Sentinel pieces. Read the
-   "Deployment notes" sections in these documents specifically — they record real configuration
-   gaps found and fixed against a live tenant, which is a more useful signal of hands-on capability
-   than the policies themselves.
-5. **`powerbi/`** — how this program reports risk and control posture to non-technical
-   stakeholders.
-
-## Frameworks referenced
-
-- [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
-- [NIST AI Risk Management Framework (AI RMF 1.0)](https://www.nist.gov/itl/ai-risk-management-framework)
-- [ISO/IEC 42001:2023 — AI Management Systems](https://www.iso.org/standard/81230.html)
-- [MITRE ATLAS](https://atlas.mitre.org/)
-
+---
 ## Tooling
 
 - **Microsoft Entra ID** — Conditional Access, identity-based AI app access control
@@ -99,12 +135,23 @@ If you're reviewing this for a hiring decision, the fastest path through it is:
 - **Terraform** — infrastructure as code for the above
 - **Power BI** — governance and security operations reporting
 
+
+---
+## Frameworks referenced
+
+- [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+- [NIST AI Risk Management Framework (AI RMF 1.0)](https://www.nist.gov/itl/ai-risk-management-framework)
+- [ISO/IEC 42001:2023 — AI Management Systems](https://www.iso.org/standard/81230.html)
+- [MITRE ATLAS](https://atlas.mitre.org/)
+
+
+---
 ## Related work
 
 A companion repository, [`erp-identity-security-reference-architecture`](https://github.com/jonarm/erp-identity-security-reference-architecture),
 covers identity and access security for a Dynamics 365 F&O ERP deployment using a similar
 threat-model-to-control structure.
-
+---
 ## Disclaimer
 
 This is a portfolio project. Contoso Retail Group, its data, and all findings are fictitious.
